@@ -3,9 +3,9 @@ services:
     image: postgres
     restart: always
     environment:
-      POSTGRES_DB: go-asyncapi
-      POSTGRES_PASSWORD: qwerty
-      POSTGRES_USER: admin
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_USER: ${POSTGRES_USER}
     ports:
       - "5432:5432"
     volumes:
