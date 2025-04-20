@@ -8,14 +8,24 @@ import (
 	"testing"
 )
 
+func testConfig() *config.Config {
+	return &config.Config{
+		JwtSecret:  "mysecret",
+		ServerHost: "localhost",
+		ServerPort: "8080",
+	}
+}
+
 func TestJWTManager(t *testing.T) {
-	conf, err := config.New()
-	require.NoError(t, err)
+	conf := testConfig()
 
 	JWTMgr := server.NewJWTManager(conf)
 	userID := uuid.New()
 	tokenPair, err := JWTMgr.GenerateTokenPair(userID)
 	require.NoError(t, err)
+
+	require.True(t, JWTMgr.IsAccessToken(tokenPair.AccessToken))
+	require.False(t, JWTMgr.IsAccessToken(tokenPair.RefreshToken))
 
 	accessTokenSubject, err := tokenPair.AccessToken.Claims.GetSubject()
 	require.NoError(t, err)
@@ -32,5 +42,13 @@ func TestJWTManager(t *testing.T) {
 	refreshTokenIssuer, err := tokenPair.RefreshToken.Claims.GetIssuer()
 	require.NoError(t, err)
 	require.Equal(t, "http://"+conf.ServerHost+":"+conf.ServerPort, refreshTokenIssuer)
+
+	parsedAccessToken, err := JWTMgr.Parse(tokenPair.AccessToken.Raw)
+	require.NoError(t, err)
+	require.Equal(t, tokenPair.AccessToken, parsedAccessToken)
+
+	parsedRefreshToken, err := JWTMgr.Parse(tokenPair.RefreshToken.Raw)
+	require.NoError(t, err)
+	require.Equal(t, tokenPair.RefreshToken, parsedRefreshToken)
 
 }

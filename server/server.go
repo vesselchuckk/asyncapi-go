@@ -12,16 +12,18 @@ import (
 )
 
 type Server struct {
-	Config *config.Config
-	Logger *slog.Logger
-	Store  *store.Store
+	Config     *config.Config
+	Logger     *slog.Logger
+	Store      *store.Store
+	JwtManager *JwtManager
 }
 
-func NewServer(config *config.Config, logger *slog.Logger, store *store.Store) *Server {
+func NewServer(config *config.Config, logger *slog.Logger, store *store.Store, jwtManager *JwtManager) *Server {
 	return &Server{
-		Config: config,
-		Logger: logger,
-		Store:  store,
+		Config:     config,
+		Logger:     logger,
+		Store:      store,
+		JwtManager: jwtManager,
 	}
 }
 
@@ -37,8 +39,11 @@ func (s *Server) Run(ctx context.Context) error {
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /ping", s.Ping)
 	mux.HandleFunc("POST /auth/signup", s.SignUpHandler())
+	mux.HandleFunc("POST /auth/signin", s.SignInHandler())
+	mux.HandleFunc("POST /auth/refresh", s.tokenRefreshHandler())
 
 	middleware := NewLoggerMiddleware(s.Logger)
+	middleware = NewAuthMiddleware(s.JwtManager, s.Store.Users)
 	server := &http.Server{
 		Addr:    net.JoinHostPort(s.Config.ServerHost, s.Config.ServerPort),
 		Handler: middleware(mux),
